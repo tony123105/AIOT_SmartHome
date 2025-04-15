@@ -14,8 +14,8 @@ lcd = CharLCD('PCF8574',0x27)
 DHT_SENSOR = Adafruit_DHT.DHT11
 DHT_PIN = 4
 
-write_api_key = 'W9YSPLL5UPWOWMB2'
-channel_id = '2913715'
+write_api_key = '18NTY0VN3YPMM9FI'
+channel_id = '2906053'
 # Create an ADS1115 ADC (16-bit) instance.
 #adc = Adafruit_ADS1x15.ADS1115()
 #CH1 = Variable resistor

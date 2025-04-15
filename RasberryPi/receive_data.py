@@ -4,8 +4,8 @@ import time
 import json
 
 # --- Configuration ---
-THINGSPEAK_CHANNEL_ID = '2913715'  # Replace with your ThingSpeak Channel ID
-THINGSPEAK_READ_API_KEY = 'S2Y39LONV8T8LL9Z' # Replace with your Read API Key (if channel is private, otherwise leave empty '')
+THINGSPEAK_CHANNEL_ID = '2906053'  # Replace with your ThingSpeak Channel ID
+THINGSPEAK_READ_API_KEY = 'EOXRXL9U5XQQXXEJ' # Replace with your Read API Key (if channel is private, otherwise leave empty '')
 
 # Map ThingSpeak fields to Raspberry Pi GPIO pins (BCM numbering) ---
 GPIO_PIN_MAP = {
