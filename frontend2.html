@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThingSpeak Data</title>
+    <link rel="stylesheet" href="index.css">
+
+    <script>
+        // Variable to store the last update time
+        let lastUpdateTime = null;
+
+        // Function to update the last update time display
+        function updateLastUpdateTime() {
+            lastUpdateTime = new Date();
+            const lastUpdateElement = document.querySelector('.last_update');
+            if (lastUpdateElement) {
+                lastUpdateElement.innerText = `Last Updated: ${lastUpdateTime.toLocaleString()}`;
+            }
+        }
+
+        async function write_data(d, field) {
+            try {
+                const fieldNum = field.match(/\d+/) ? field.match(/\d+/)[0] : field;
+                const response = await fetch(`https://api.thingspeak.com/update?api_key=18NTY0VN3YPMM9FI&field${fieldNum}=${d}`);
+                const data = await response.text();
+                console.log('Write result:', data);
+                if (data === '0') {
+                    console.error('Failed to write data');
+                }
+            } catch (error) {
+                console.error('Error writing data:', error);
+            }
+        }
+
+        async function get_data(fieldName, className, id) {
+            try {
+                const fieldNum = fieldName.match(/\d+/) ? fieldName.match(/\d+/)[0] : fieldName;
+                const response = await fetch(`https://api.thingspeak.com/channels/2906053/fields/${fieldNum}/last.json?api_key=EOXRXL9U5XQQXXEJ`);
+                const data = await response.json();
+                const data_container = document.querySelector(`.${className}`);
+                console.log(`Last value for ${fieldName}:`, data);
+
+                if (!data || data[fieldName] === null || data[fieldName] === undefined) {
+                    data_container.innerText = `No data available for ${fieldName}`;
+                    return;
+                }
+
+                const latestValue = data[fieldName];
+                data_container.innerText = latestValue == "1" ? 'on' : 'off';
+
+                const device_container = document.getElementById(id);
+                if (latestValue == "1") {
+                    device_container.classList.add('green');
+                    device_container.classList.remove('red');
+                } else if (latestValue == "0") {
+                    device_container.classList.add('red');
+                    device_container.classList.remove('green');
+                }
+
+                // Update the last update time
+                updateLastUpdateTime();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                const data_container = document.querySelector(`.${className}`);
+                data_container.innerText = 'Error fetching data';
+            }
+        }
+
+        async function get_sensor_data(fieldName, className, id) {
+            try {
+                const fieldNum = fieldName.match(/\d+/) ? fieldName.match(/\d+/)[0] : fieldName;
+                const response = await fetch(`https://api.thingspeak.com/channels/2906053/fields/${fieldNum}/last.json?api_key=EOXRXL9U5XQQXXEJ`);
+                const data = await response.json();
+                const data_container = document.querySelector(`.${className}`);
+                console.log(`Last value for ${fieldName}:`, data);
+
+                if (!data || data[fieldName] === null || data[fieldName] === undefined) {
+                    data_container.innerText = `No data available for ${fieldName}`;
+                    return;
+                }
+
+                let latestValue = data[fieldName];
+                if (fieldName === 'field8') {
+                    latestValue = latestValue / 12;
+                }
+                data_container.innerText = latestValue;
+
+                const device_container = document.getElementById(id);
+
+                updateLastUpdateTime();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                const data_container = document.querySelector(`.${className}`);
+                data_container.innerText = 'Error fetching data';
+            }
+        }
+
+        async function add_listener_for_device_div(device_id, field) {
+            const device_div = document.getElementById(device_id);
+            const device_status = device_div.querySelector('p');
+
+            device_div.addEventListener('click', async () => {
+                const device_status_text = device_status.innerText;
+                console.log(`Device ${device_id} status = ${device_status_text}`);
+
+                if (device_status_text === 'on') {
+                    device_status.innerText = 'off';
+                    device_div.classList.add('red');
+                    device_div.classList.remove('green');
+                    write_data(0, field);
+                    console.log(`Wrote 0 to ${field}`);
+                } else if (device_status_text === 'off') {
+                    device_status.innerText = 'on';
+                    device_div.classList.add('green');
+                    device_div.classList.remove('red');
+                    write_data(1, field);
+                    console.log(`Wrote 1 to ${field}`);
+                }
+            });
+            console.log(`Added listener for ${device_id}`);
+        }
+
+        window.onload = async () => {
+            await get_data('field3', 'air_condition_status', 'air_condition_box');
+            await get_data('field4', 'dehumidifier_status', 'dehumidifier_box');
+            await get_data('field5', 'light_status', 'light_box');
+            await get_sensor_data('field6', 'temperature_value', 'temperature_box');
+            await get_sensor_data('field7', 'humidity_value', 'humidity_box');
+            await get_sensor_data('field8', 'light_value', 'light_value_box');
+
+            // Add listeners after initial data load
+            add_listener_for_device_div('air_condition_box', 'field3');
+            add_listener_for_device_div('dehumidifier_box', 'field4');
+            add_listener_for_device_div('light_box', 'field5');
+        };
+    </script>
+</head>
+<body>
+    <!-- Top-right container for last update time and refresh button -->
+    <div class="top_right_container">
+        <div class="last_update" >Last Updated: --</div>
+        <button class="refresh_button" onclick="location.reload()">Refresh</button>
+    </div>
+
+    <h1 class="header">Smart Home</h1>
+    <div class="panel_container">
+        <div class="box" id="temperature_box">Temperature: <p class="temperature_value"></p></div>
+        <div class="box" id="humidity_box">Humidity: <p class="humidity_value"></p></div>
+        <div class="box" id="light_value_box">Light: <p class="light_value"></p></div>
+        <div class="box" id="air_condition_box">Air Condition: <p class="air_condition_status"></p></div>
+        <div class="box" id="dehumidifier_box">Dehumidifier: <p class="dehumidifier_status"></p></div>
+        <div class="box" id="light_box">Light: <p class="light_status"></p></div>
+    </div>
+</body>
+</html>
