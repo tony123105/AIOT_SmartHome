@@ -1,6 +1,0 @@
-python smart_controller.py --read-key W96TERGTY0C5EQ63 --write-key T38CH2JOM5GJCXMP --channel-id 2916772 --interval 60
-
-python smart_controller.py --read-key EOXRXL9U5XQQXXEJ --write-key 18NTY0VN3YPMM9FI --channel-id 2906053 --custom-time "2023-11-02 16:00:00"
-
-https://api.thingspeak.com/update?api_key=18NTY0VN3YPMM9FI&field1=0
-https://api.thingspeak.com/channels/2906053/fields/1.json?api_key=EOXRXL9U5XQQXXEJ&results=2

@@ -16,12 +16,7 @@ GPIO_PIN_MAP = {
 
 EXTRA_PINS_TO_SET_LOW = [10,8]
 
-CHECK_INTERVAL_SECONDS = 15 # How often to check ThingSpeak (in seconds)
-
-# ThingSpeak API URL for the last feed
-THINGSPEAK_URL = f"https://api.thingspeak.com/channels/{THINGSPEAK_CHANNEL_ID}/feeds/last.json"
-if THINGSPEAK_READ_API_KEY:
-    THINGSPEAK_URL += f"?api_key={THINGSPEAK_READ_API_KEY}"
+CHECK_INTERVAL_SECONDS = 3 # How often to check ThingSpeak (in seconds)
 
 # --- GPIO Setup ---
 def setup_gpio():
@@ -39,54 +34,47 @@ def setup_gpio():
         print("Warning: No GPIO pins defined in GPIO_PIN_MAP.")
 
 # --- ThingSpeak Fetch Function ---
-def get_latest_thingspeak_data():
-    """Fetches the latest data point from ThingSpeak."""
+def get_field_value(field_num):
+    """Fetches the latest value for a specific field from ThingSpeak."""
+    field_url = f"https://api.thingspeak.com/channels/{THINGSPEAK_CHANNEL_ID}/fields/{field_num}/last.json"
+    if THINGSPEAK_READ_API_KEY:
+        field_url += f"?api_key={THINGSPEAK_READ_API_KEY}"
+    
     try:
-        response = requests.get(THINGSPEAK_URL, timeout=10) # Added timeout
-        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+        response = requests.get(field_url, timeout=10)  # Added timeout
+        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
         data = response.json()
-        print(f"Successfully fetched data: {data}")
-        return data
+        print(f"Successfully fetched field {field_num} data: {data}")
+        return data.get('field' + str(field_num))  # Return the field value
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching data from ThingSpeak: {e}")
+        print(f"Error fetching field {field_num} data from ThingSpeak: {e}")
     except json.JSONDecodeError as e:
-        print(f"Error decoding ThingSpeak JSON response: {e}")
+        print(f"Error decoding ThingSpeak JSON response for field {field_num}: {e}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-    return None # Return None if fetching failed
+        print(f"An unexpected error occurred while fetching field {field_num}: {e}")
+    return None  # Return None if fetching failed
 
 # --- LED Control Function ---
-def control_leds(data):
-    """Controls LEDs based on fetched ThingSpeak data."""
-    if not data:
-        print("No data received, skipping LED control.")
-        return
-
+def control_leds_field_based():
+    """Controls LEDs based on fetched ThingSpeak field data."""
     for field, pin in GPIO_PIN_MAP.items():
+        field_num = int(field.replace('field', ''))  # Extract field number from field name
+        field_value_str = get_field_value(field_num)  # Fetch the specific field value
+        
         try:
-            # ThingSpeak fields can be None or missing if not updated recently
-            field_value_str = data.get(field)
-
             if field_value_str is not None:
-                # Compare the string value
                 if field_value_str == '1':
-                    GPIO.output(pin, GPIO.HIGH) # Turn LED ON
+                    GPIO.output(pin, GPIO.HIGH)  # Turn LED ON
                     print(f"Field '{field}' is 1. Turning ON GPIO {pin}.")
                 elif field_value_str == '0':
                     GPIO.output(pin, GPIO.LOW)  # Turn LED OFF
                     print(f"Field '{field}' is 0. Turning OFF GPIO {pin}.")
                 else:
-                     # Optional: Turn off if value is unexpected, or maintain state
-                     GPIO.output(pin, GPIO.LOW)
-                     print(f"Field '{field}' has unexpected value '{field_value_str}'. Turning OFF GPIO {pin}.")
-
+                    GPIO.output(pin, GPIO.LOW)
+                    print(f"Field '{field}' has unexpected value '{field_value_str}'. Turning OFF GPIO {pin}.")
             else:
-                 # Optional: Decide what to do if a field is missing (e.g., turn off)
-                 GPIO.output(pin, GPIO.LOW)
-                 print(f"Field '{field}' not found in latest data. Turning OFF GPIO {pin}.")
-
-        except KeyError:
-            print(f"Error: GPIO pin {pin} for field '{field}' not setup correctly or invalid.")
+                GPIO.output(pin, GPIO.LOW)
+                print(f"Field '{field}' not found or no data available. Turning OFF GPIO {pin}.")
         except Exception as e:
             print(f"An error occurred controlling GPIO {pin} for field '{field}': {e}")
 
@@ -95,14 +83,13 @@ if __name__ == "__main__":
     setup_gpio()
     try:
         while True:
-            print(f"\nChecking ThingSpeak at {time.ctime()}...")
-            latest_data = get_latest_thingspeak_data()
-            control_leds(latest_data)
+            print(f"\nChecking ThingSpeak fields at {time.ctime()}...")
+            control_leds_field_based()  # Use the updated field-based LED control
             print(f"Waiting for {CHECK_INTERVAL_SECONDS} seconds...")
             time.sleep(CHECK_INTERVAL_SECONDS)
     except KeyboardInterrupt:
         print("Program stopped by user.")
     finally:
         print("Cleaning up GPIO...")
-        GPIO.cleanup() # Reset GPIO pins on exit
+        GPIO.cleanup()  # Reset GPIO pins on exit
         print("GPIO cleanup complete.")
