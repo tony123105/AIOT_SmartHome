@@ -1,5 +1,7 @@
 # AIOT_SmartHome
 
+![Workflow of the system](./flow.jpg)
+
 ## Overview
 
 This project implements an AI-driven smart home automation system. It utilizes Raspberry Pi devices for sensing environmental conditions and controlling appliances, ThingSpeak as the cloud platform for data aggregation and communication, and AI models for intelligent decision-making regarding occupancy and appliance states.
